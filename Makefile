@@ -1,4 +1,7 @@
 obj-m := pps-gpio-poll.o
-PWD := $(shell pwd)
-default:
-	$(MAKE) -C $(KDIR) HOSTCFLAGS=$(HOSTCFLAGS) CROSS_COMPILE=$(CROSS_COMPILE) ARCH=$(ARCH) KBUILD_HAVE_NLS=$(KBUILD_HAVE_NLS) CC=$(CC) SUBDIRS=$(PWD) modules
+
+all:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+
+clean:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
