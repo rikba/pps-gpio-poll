@@ -95,7 +95,7 @@ static int pps_gpio_register(void)
 	if (ret) {
 		pr_warning("failed to request PPS GPIO %u\n", gpio);
 		return -EINVAL;
-	}	
+	}
 	ret = gpio_direction_input(gpio);
 	if (ret) {
 		pr_warning("failed to set PPS GPIO direction\n");
@@ -115,7 +115,7 @@ static int pps_gpio_register(void)
 		}
 	}
 	#endif
-	
+
 	/* register PPS source */
 	pps_default_params = PPS_CAPTUREASSERT | PPS_OFFSETASSERT;
 	pps = pps_register_source(&info, pps_default_params);
@@ -161,22 +161,27 @@ static int pps_gpio_remove(void)
 static enum hrtimer_restart gpio_wait(struct hrtimer *t);
 static enum hrtimer_restart gpio_poll(struct hrtimer *t)
 {
+	pr_info("gpio_poll\n");
 	ktime_t ktime = ktime_set(0, poll*1000);
 
 	int value = gpio_get_value(gpio);
+	pr_info("value: %d \n", value);
 	if (value != gpio_value) {
 		if (value == capture) {
 			/* got a PPS event, start busy waiting 1.5*poll microseconds
 			 * before the next event */
 			ktime = ktime_set(0, (interval - poll - poll/2)*1000);
+			pr_info("Switch to gpio_wait\n");
 			timer.function = &gpio_wait;
 			last_ts = ktime_set(0, 0);
 		}
 		gpio_value = value;
 	}
 
+	pr_info("Start next timer\n");
 	hrtimer_start(&timer, ktime, HRTIMER_MODE_REL);
 
+	pr_info("Return HRTIMER_NORESTART \n");
 	return HRTIMER_NORESTART;
 }
 
@@ -200,7 +205,7 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t)
 	pps_get_ts(&ts);
 	monotonic = ktime_get();
 	local_irq_restore(flags);
-	
+
 	if (likely(i > 0 && i < iter)) {
 		have_ts = 1;
 		if (unlikely(ktime_to_ns(last_ts) == 0)) {
@@ -241,7 +246,7 @@ static enum hrtimer_restart gpio_off()
 {
 	if (gpio_echo >= 0)
 		gpio_set_value(gpio_echo, echo_invert);
-	return HRTIMER_NORESTART;	
+	return HRTIMER_NORESTART;
 }
 #endif
 
@@ -261,12 +266,12 @@ static int __init pps_gpio_init(void)
 	timer.function = &gpio_poll;
 	ktime = ktime_set(0, 1000000);
 	hrtimer_start(&timer, ktime, HRTIMER_MODE_REL);
-	
+
 	#ifdef GPIO_ECHO
 	hrtimer_init(&echo_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	echo_timer.function = &gpio_off;
 	#endif
-	
+
 	return 0;
 }
 
