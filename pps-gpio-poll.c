@@ -171,13 +171,17 @@ static int pps_gpio_remove(void) {
 static enum hrtimer_restart gpio_wait(struct hrtimer *t);
 static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
   ktime_t ktime = ktime_set(0, poll * 1000);
-  int value = 0;
+  int value = -EAGAIN;
   pr_info("gpio_poll\n");
 
-  if (gpio_cansleep(gpio)) {
-    value = gpio_get_value_cansleep(gpio);
-  } else {
-    value = gpio_get_value(gpio);
+  for (int i = 0; i < 100; ++i) {
+    if (value == -EAGAIN) {
+      if (gpio_cansleep(gpio)) {
+        value = gpio_get_value_cansleep(gpio);
+      } else {
+        value = gpio_get_value(gpio);
+      }
+    }
   }
   pr_info("value: %d \n", value);
   if (value != gpio_value) {
