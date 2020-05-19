@@ -20,6 +20,8 @@
   "pps-gpio-poll"                                                              \
   ": " fmt
 
+#include <linux/device.h>
+#include <linux/i2c.h>
 #include <linux/gpio.h>
 #include <linux/hrtimer.h>
 #include <linux/init.h>
@@ -172,7 +174,12 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t);
 static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
   ktime_t ktime = ktime_set(0, poll * 1000);
   int value = -EAGAIN;
-	int i;
+  int i;
+
+  struct device *dev = bus_find_device_by_name(&i2c_bus_type, NULL, "ad5593r");
+  if (dev) {
+    pr_info("Found ad5593r.\n");
+  }
   pr_info("gpio_poll\n");
 
   for (i = 0; i < 100; ++i) {
