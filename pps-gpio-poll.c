@@ -138,7 +138,7 @@ static int pps_gpio_register(void) {
   ts1 = ktime_get();
   for (i = 0; i < 100; i++) {
     if (gpio_cansleep(gpio)) {
-      gpio_get_value_cansleep(gpio);
+      pr_info("init: %d", gpio_get_value_cansleep(gpio));
     } else {
       gpio_get_value(gpio);
     }
