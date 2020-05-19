@@ -172,9 +172,10 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t);
 static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
   ktime_t ktime = ktime_set(0, poll * 1000);
   int value = -EAGAIN;
+	int i;
   pr_info("gpio_poll\n");
 
-  for (int i = 0; i < 100; ++i) {
+  for (i = 0; i < 100; ++i) {
     if (value == -EAGAIN) {
       if (gpio_cansleep(gpio)) {
         value = gpio_get_value_cansleep(gpio);
