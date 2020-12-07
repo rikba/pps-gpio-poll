@@ -130,6 +130,12 @@ static int pps_gpio_register(void) {
   }
 
   /* Get GPIO timing precision */
+  if (gpio_cansleep(gpio)) {
+    pr_info("GPIO can sleep.");
+  } else {
+    pr_info("GPIO cannot sleep.");
+  }
+
   for (i = 0; i < 1000; i++) {
     ts1 = ktime_get();
     if (gpio_cansleep(gpio)) {
