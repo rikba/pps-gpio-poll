@@ -185,7 +185,7 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t);
 static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
   ktime_t ktime = ktime_set(0, poll * 1000);
   int value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
-                              : gpio_get_value(gpio);
+                                  : gpio_get_value(gpio);
 
   if (value != gpio_value) {
     if (value == capture) {
@@ -208,10 +208,13 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t) {
   ktime_t ktime;
   struct pps_event_time ts;
   ktime_t monotonic;
-  int i, have_ts = 0;
+  int i, value, have_ts = 0;
   unsigned long flags;
-  int value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
-                                  : gpio_get_value(gpio);
+
+  /* read the GPIO value until the PPS event happens */
+  local_irq_save(flags);
+  value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
+                              : gpio_get_value(gpio);
 
   /* Catch missed PPS */
   if (value == capture) {
@@ -221,10 +224,7 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t) {
     i = 0;
   }
 
-  /* read the GPIO value until the PPS event happens */
-  local_irq_save(flags);
   pps_get_ts(&ts);
-
   for (; likely(i < iter && value != capture); i++) {
     value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
                                 : gpio_get_value(gpio);
