@@ -127,16 +127,9 @@ static int pps_gpio_register(void) {
   }
 
   ts1 = ktime_get();
-  if (gpio_cansleep(gpio)) {
-    gpio_get_value_cansleep(gpio);
-  } else {
-    gpio_get_value(gpio);
-  }
-
-  ts1 = ktime_get();
   for (i = 0; i < 100; i++) {
     if (gpio_cansleep(gpio)) {
-      pr_info("init: %d", gpio_get_value_cansleep(gpio));
+      gpio_get_value_cansleep(gpio);
     } else {
       gpio_get_value(gpio);
     }
@@ -176,11 +169,8 @@ static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
 
   for (i = 0; i < 100; ++i) {
     if (value == -EAGAIN) {
-      if (gpio_cansleep(gpio)) {
-        value = gpio_get_value_cansleep(gpio);
-      } else {
-        value = gpio_get_value(gpio);
-      }
+      value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
+                                  : gpio_get_value(gpio);
     }
   }
   if (value != gpio_value) {
@@ -296,11 +286,8 @@ static int __init pps_gpio_init(void) {
   if (ret < 0)
     return ret;
 
-  if (gpio_cansleep(gpio)) {
-    gpio_value = gpio_get_value_cansleep(gpio);
-  } else {
-    gpio_value = gpio_get_value(gpio);
-  }
+  gpio_value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
+                                   : gpio_get_value(gpio);
   interval = 1000000 / rate;
 
   hrtimer_init(&timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
