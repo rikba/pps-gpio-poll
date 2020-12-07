@@ -184,15 +184,9 @@ static int pps_gpio_remove(void) {
 static enum hrtimer_restart gpio_wait(struct hrtimer *t);
 static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
   ktime_t ktime = ktime_set(0, poll * 1000);
-  int value = -EAGAIN;
-  int i;
+  int value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
+                              : gpio_get_value(gpio);
 
-  for (i = 0; i < 100; ++i) {
-    if (value == -EAGAIN) {
-      value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
-                                  : gpio_get_value(gpio);
-    }
-  }
   if (value != gpio_value) {
     if (value == capture) {
       /* got a PPS event, start busy waiting 1.5*poll microseconds
