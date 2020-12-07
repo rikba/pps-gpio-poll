@@ -174,8 +174,6 @@ static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
   int value = -EAGAIN;
   int i;
 
-  pr_info("gpio_poll\n");
-
   for (i = 0; i < 100; ++i) {
     if (value == -EAGAIN) {
       if (gpio_cansleep(gpio)) {
@@ -185,23 +183,20 @@ static enum hrtimer_restart gpio_poll(struct hrtimer *t) {
       }
     }
   }
-  pr_info("value: %d \n", value);
   if (value != gpio_value) {
     if (value == capture) {
       /* got a PPS event, start busy waiting 1.5*poll microseconds
        * before the next event */
       ktime = ktime_set(0, (interval - poll - poll / 2) * 1000);
-      pr_info("Switch to gpio_wait\n");
       timer.function = &gpio_wait;
       last_ts = ktime_set(0, 0);
+      pr_info("Polled PPS. Switch to optimized polling.");
     }
     gpio_value = value;
   }
 
-  pr_info("Start next timer\n");
   hrtimer_start(&timer, ktime, HRTIMER_MODE_REL);
 
-  pr_info("Return HRTIMER_NORESTART \n");
   return HRTIMER_NORESTART;
 }
 
@@ -211,19 +206,24 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t) {
   ktime_t monotonic;
   int i, have_ts = 0;
   unsigned long flags;
-  int value = 0;
+  int value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio) :
+                                    gpio_get_value(gpio);
+
+  /* Catch missed PPS */
+  if (value == capture) {
+    pr_warn("PPS already triggered.");
+    i = iter;
+  } else {
+    i = 0;
+  }
 
   /* read the GPIO value until the PPS event happens */
   local_irq_save(flags);
   pps_get_ts(&ts);
 
-  if (gpio_cansleep(gpio)) {
-    value = gpio_get_value_cansleep(gpio);
-  } else {
-    value = gpio_get_value(gpio);
-  }
-
-  for (i = 0; likely(i < iter && value != capture); i++) {
+  for (; likely(i < iter && value != capture); i++) {
+    value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio) :
+                                  gpio_get_value(gpio);
   }
 #ifdef GPIO_ECHO
   if (gpio_echo >= 0 && likely(i > 0 && i < iter)) {
