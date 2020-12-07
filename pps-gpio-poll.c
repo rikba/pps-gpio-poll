@@ -148,7 +148,7 @@ static int pps_gpio_register(void) {
     dur = ktime_to_ns(ts2) - ktime_to_ns(ts1);
     min = dur < min ? dur : min;
     max = dur > max ? dur : max;
-    avg += dur / 1000;
+    avg += (dur / 1000);
   }
 
   pr_info("Registered GPIO %d as PPS source. Precision [ns] avg: %llu min: "
@@ -157,7 +157,7 @@ static int pps_gpio_register(void) {
 
   /* Minimum number of GPIO reads. */
   iter = 2 * (poll + poll / 2) * 1000000 / min;
-  max_iter = 1000000 / rate / max;
+  max_iter = 1000000 / rate / avg;
   iter = iter > max_iter ? max_iter : iter;
   pr_info("Maximum number of GPIO polls: %d", iter);
 
