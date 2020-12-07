@@ -157,7 +157,7 @@ static int pps_gpio_register(void) {
 
   /* Minimum number of GPIO reads. */
   iter = 2 * (poll + poll / 2) * 1000000 / min;
-  max_iter = 1000000 / rate / avg;
+  max_iter = 1000000000 / rate / max;
   iter = iter > max_iter ? max_iter : iter;
   pr_info("Maximum number of GPIO polls: %d", iter);
 
