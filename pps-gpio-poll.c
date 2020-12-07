@@ -68,9 +68,9 @@ MODULE_PARM_DESC(poll, "polling interval (microseconds)");
 module_param(wait, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(wait, "time to wait for PPS event (microseconds)");
 module_param(iter, int, S_IRUSR | S_IWUSR);
-MODULE_PARM_DESC(rate, "PPS rate (Hz)");
-module_param(rate, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(iter, "maximum number of GPIO reads in the wait loop");
+module_param(rate, int, S_IRUSR | S_IWUSR);
+MODULE_PARM_DESC(rate, "PPS rate (Hz)");
 module_param(debug, int, S_IRUSR | S_IWUSR);
 
 static struct pps_device *pps;
@@ -206,8 +206,8 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t) {
   ktime_t monotonic;
   int i, have_ts = 0;
   unsigned long flags;
-  int value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio) :
-                                    gpio_get_value(gpio);
+  int value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
+                                  : gpio_get_value(gpio);
 
   /* Catch missed PPS */
   if (value == capture) {
@@ -222,9 +222,10 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t) {
   pps_get_ts(&ts);
 
   for (; likely(i < iter && value != capture); i++) {
-    value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio) :
-                                  gpio_get_value(gpio);
+    value = gpio_cansleep(gpio) ? gpio_get_value_cansleep(gpio)
+                                : gpio_get_value(gpio);
   }
+
 #ifdef GPIO_ECHO
   if (gpio_echo >= 0 && likely(i > 0 && i < iter)) {
     if (gpio_cansleep(gpio_echo)) {
@@ -233,8 +234,8 @@ static enum hrtimer_restart gpio_wait(struct hrtimer *t) {
       gpio_set_value(gpio_echo, !echo_invert);
     }
   }
-
 #endif
+
   pps_get_ts(&ts);
   monotonic = ktime_get();
   local_irq_restore(flags);
