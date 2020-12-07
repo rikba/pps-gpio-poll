@@ -86,6 +86,7 @@ static int pps_gpio_register(void) {
   u64 min = 0xFFFFFFFFFFFFFFFF;
   u64 max = 0;
   u64 avg = 0;
+  int max_iter;
 
   struct pps_source_info info = {.name = KBUILD_MODNAME,
                                  .path = "",
@@ -154,8 +155,10 @@ static int pps_gpio_register(void) {
           "%llu, max: %llu\n",
           gpio, avg, min, max);
 
-  /* Maximum number of GPIO reads. */
-  iter = 4 * (poll + poll / 2) * 1000000 / min;
+  /* Minimum number of GPIO reads. */
+  iter = 2 * (poll + poll / 2) * 1000000 / min;
+  max_iter = 1000000 / rate / max;
+  iter = iter > max_iter ? max_iter : iter;
   pr_info("Maximum number of GPIO polls: %d", iter);
 
   return 0;
