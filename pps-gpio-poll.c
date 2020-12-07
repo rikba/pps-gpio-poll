@@ -67,8 +67,6 @@ module_param(poll, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(poll, "polling interval (microseconds)");
 module_param(wait, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(wait, "time to wait for PPS event (microseconds)");
-module_param(iter, int, S_IRUSR | S_IWUSR);
-MODULE_PARM_DESC(iter, "maximum number of GPIO reads in the wait loop");
 module_param(rate, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(rate, "PPS rate (Hz)");
 module_param(debug, int, S_IRUSR | S_IWUSR);
@@ -84,6 +82,11 @@ static int gpio_value;
 static int pps_gpio_register(void) {
   int i, ret, pps_default_params;
   ktime_t ts1, ts2;
+  u64 dur = 0;
+  u64 min = 0xFFFFFFFFFFFFFFFF;
+  u64 max = 0;
+  u64 avg = 0;
+
   struct pps_source_info info = {.name = KBUILD_MODNAME,
                                  .path = "",
                                  .mode = PPS_CAPTUREASSERT | PPS_OFFSETASSERT |
@@ -126,18 +129,29 @@ static int pps_gpio_register(void) {
     goto error;
   }
 
-  ts1 = ktime_get();
-  for (i = 0; i < 100; i++) {
+  /* Get GPIO timing precision */
+  for (i = 0; i < 1000; i++) {
+    ts1 = ktime_get();
     if (gpio_cansleep(gpio)) {
       gpio_get_value_cansleep(gpio);
     } else {
       gpio_get_value(gpio);
     }
+    ts2 = ktime_get();
+    dur = ktime_to_ns(ts2) - ktime_to_ns(ts1);
+    min = dur < min ? dur : min;
+    max = dur > max ? dur : max;
+    avg += dur / 1000;
   }
-  ts2 = ktime_get();
 
-  pr_info("Registered GPIO %d as PPS source (precision %d ns)\n", gpio,
-          (int)(ktime_to_ns(ts2) - ktime_to_ns(ts1)) / 100);
+  pr_info("Registered GPIO %d as PPS source. Precision [ns] avg: %llu min: "
+          "%llu, max: %llu\n",
+          gpio, avg, min, max);
+
+  /* Maximum number of GPIO reads. */
+  iter = 4 * (poll + poll / 2) * 1000000 / min;
+  pr_info("Maximum number of GPIO polls: %d", iter);
+
   return 0;
 
 error:
